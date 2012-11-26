@@ -4,43 +4,58 @@
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 
+
+
+
 using namespace std;
 
 int main(int argc, char *argv[])
 {
-
-	//This section uses BIOs to write a copy of infile.txt to outfile.txt
+  
+  //ERR_load_crypto_strings();
+  //SSL_load_error_strings();
+	
+  //This section uses BIOs to write a copy of infile.txt to outfile.txt
 	//  and to send the hash of infile.txt to the command window.
 	//  It is a barebones implementation with little to no error checking.
 
 	//The SHA1 hash BIO is chained to the input BIO, though it could just
 	//  as easily be chained to the output BIO instead.
 
-	char infilename[] = "langridge.txt";
+  //plaintext files
+  char infilename[] = "langridge.txt";
 	char outfilename[] = "outfile.txt";
-
-  //rsa_prk = PEM_read_bio_RSAPrivateKey( );
 	
+  //Buffers
   char* buffer[1024];
+  char* encbuffer[1024];
+  char* decbuffer[1024];
 
-	BIO *binfile, *boutfile, *hash;
+  BIO *binfile, *boutfile, *hash;
 	
- 
   binfile = BIO_new_file(infilename, "r");
 	boutfile = BIO_new_file(outfilename, "w") ;
-	hash = BIO_new(BIO_f_md());
+	
+  hash = BIO_new(BIO_f_md());
 	BIO_set_md(hash, EVP_sha1());
 
-  BIO *f = BIO_new_file("rsaprivatekey.pem", "r");
-  RSA *rsa=PEM_read_bio_RSAPrivateKey(f, NULL,NULL,NULL);
+  BIO *bio_private_key = BIO_new_file("rsaprivatekey.pem", "r");
+  RSA *rsa = PEM_read_bio_RSAPrivateKey(bio_private_key, NULL,NULL,NULL);
   
-  char * outbuffer[1024];
-  char * otherbuffer[1024];
-  RSA_private_encrypt(1024, (unsigned char*)buffer, (unsigned char*)outbuffer ,rsa, RSA_PKCS1_PADDING);
+  RSA_private_encrypt( 1024, 
+                       (unsigned char*)buffer, 
+                       (unsigned char*)encbuffer, 
+                       rsa, RSA_PKCS1_PADDING
+                     );
 
-  BIO *y = BIO_new_file("rsapublickey.pem", "r");
-  RSA *p = PEM_read_bio_RSA_PUBKEY(y, NULL, NULL, NULL);
+  BIO *bio_public_key = BIO_new_file("rsapublickey.pem", "r");
+  RSA *rsa_dec = PEM_read_bio_RSA_PUBKEY(bio_public_key, NULL, NULL, NULL);
   
+  RSA_public_decrypt( 1024, 
+                      (unsigned char*)encbuffer, 
+                      (unsigned char*)decbuffer,
+                      rsa_dec, RSA_PKCS1_PADDING
+                    );
 
   //Chain on the input
 	BIO_push(hash, binfile);
@@ -50,10 +65,10 @@ int main(int argc, char *argv[])
 
 	int actualRead, actualWritten;
 
-	while((actualRead = BIO_read(hash, buffer, 1024)) >= 1)
+	while((actualRead = BIO_read(hash, decbuffer, 1024)) >= 1)
 	{
 		//Could send this to multiple chains from here
-		actualWritten = BIO_write(boutfile, buffer, actualRead);
+		actualWritten = BIO_write(boutfile, decbuffer, actualRead);
 	}
 
 	//Get digest
