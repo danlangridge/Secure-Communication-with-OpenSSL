@@ -3,7 +3,7 @@
 
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
-
+#include <openssl/crypto.h>
 
 
 
@@ -11,9 +11,9 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-  
+  SSL_library_init(); 
   //ERR_load_crypto_strings();
-  //SSL_load_error_strings();
+  SSL_load_error_strings();
 	
   //This section uses BIOs to write a copy of infile.txt to outfile.txt
 	//  and to send the hash of infile.txt to the command window.
