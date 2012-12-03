@@ -110,15 +110,20 @@ int main(int argc, char** argv)
 	// 3. Generate the SHA1 hash of the challenge
 	printf("3. Generating SHA1 hash...");
 
-	//BIO_new(BIO_s_mem());
-	//BIO_write
-	//BIO_new(BIO_f_md());
-	//BIO_set_md;
-	//BIO_push;
-	//BIO_gets;
+  char infilename[] = "langridge.txt";
+  BIO * infile = BIO_new_file(infilename, "r");
 
-    int mdlen=0;
-	string hash_string = "";
+  char h_buff[1024] = {0};
+  
+	BIO* hash = BIO_new(BIO_s_mem());
+	BIO_write(hash, infilename, 1024);
+	hash = BIO_new(BIO_f_md());
+	BIO_set_md(hash, EVP_sha1());
+	BIO_push(hash, infile);
+	BIO_gets(hash, h_buff, 1024);
+
+  int mdlen=0;
+	string hash_string = h_buff;
 
 	printf("SUCCESS.\n");
 	printf("    (SHA1 hash: \"%s\" (%d bytes))\n", hash_string.c_str(), mdlen);
@@ -166,7 +171,7 @@ int main(int argc, char** argv)
 	//BIO_flush
 	//BIO_new_file
 	//BIO_puts(server, "fnf");
-    //BIO_read(bfile, buffer, BUFFER_SIZE)) > 0)
+  //BIO_read(bfile, buffer, BUFFER_SIZE)) > 0)
 	//SSL_write(ssl, buffer, bytesRead);
 
     int bytesSent=0;
@@ -179,7 +184,7 @@ int main(int argc, char** argv)
 	printf("8. Closing connection...");
 
 	//SSL_shutdown
-    //BIO_reset
+  //BIO_reset
     printf("DONE.\n");
 
     printf("\n\nALL TASKS COMPLETED SUCCESSFULLY.\n");

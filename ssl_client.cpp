@@ -103,8 +103,8 @@ int main(int argc, char** argv)
 	// 3a. Receive the signed key from the server
 	printf("3a. Receiving signed key from server...");
 
-    char* buff= "FIXME";
-    int len=5;
+    char* buff[1024]= {0};
+    int len=1024;
 	  SSL_read(ssl, buff, len);
 
 	printf("RECEIVED.\n");
@@ -114,16 +114,18 @@ int main(int argc, char** argv)
 	// 3b. Authenticate the signed key
 	printf("3b. Authenticating key...");
 
-	//BIO_new(BIO_s_mem())
-	//BIO_write
-	//BIO_new_file
-	//PEM_read_bio_RSA_PUBKEY
-	//RSA_public_decrypt
-	//BIO_free
+  //char* dec_buff[1024] = {0};
+
+	//BIO* ua_key = BIO_new(BIO_s_mem());
+	//BIO_write(read_key, buff, 1024);
+	//ua_key = BIO_new_file( "key_authentication.txt" , "w")
+	//RSA* rsa_pub =  PEM_read_bio_RSA_PUBKEY(ua_key, NULL, NULL, NULL)
+	//RSA_public_decrypt(1024, buff, dec_buff, RSA_PKCS1_PADDING );
+	//BIO_free(ua_key);
 	
 
-	string generated_key="";
-	string decrypted_key="";
+	string generated_key= ""; //str(buff);
+	string decrypted_key= ""; // str(dec_buff);
     
 	printf("AUTHENTICATED\n");
 	printf("    (Generated key: %s)\n", generated_key.c_str());
@@ -134,9 +136,9 @@ int main(int argc, char** argv)
 	printf("4.  Sending file request to server...");
 
 	PAUSE(2);
-	//BIO_flush
-    //BIO_puts
-	//SSL_write
+	//BIO_flush();
+    //BIO_puts();
+	//SSL_write();
 
     printf("SENT.\n");
 	printf("    (File requested: \"%s\")\n", filename);
