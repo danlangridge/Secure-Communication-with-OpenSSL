@@ -27,9 +27,9 @@ int main(int argc, char *argv[])
 	char outfilename[] = "outfile.txt";
 	
   //Buffers
-  char* buffer[1024];
-  char* encbuffer[1024];
-  char* decbuffer[1024];
+  char* buffer[1024] = {0};
+  char* encbuffer[1024] = {0};
+  char* decbuffer[1024] = {0};
 
   BIO *binfile, *boutfile, *hash;
 	
@@ -41,7 +41,9 @@ int main(int argc, char *argv[])
 
   BIO *bio_private_key = BIO_new_file("rsaprivatekey.pem", "r");
   RSA *rsa = PEM_read_bio_RSAPrivateKey(bio_private_key, NULL,NULL,NULL);
-  
+ 
+  BIO_read(binfile, buffer, 1024);
+
   RSA_private_encrypt( 1024, 
                        (unsigned char*)buffer, 
                        (unsigned char*)encbuffer, 
@@ -81,8 +83,8 @@ int main(int argc, char *argv[])
 	}
 	printf("\n");
 
-	BIO_free_all(boutfile);
-	BIO_free_all(hash);
+	//BIO_free_all(boutfile);
+	//BIO_free_all(hash);
 	
 	return 0;
 }

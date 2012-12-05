@@ -110,20 +110,37 @@ int main(int argc, char** argv)
 	// 3. Generate the SHA1 hash of the challenge
 	printf("3. Generating SHA1 hash...");
 
-  char infilename[] = "langridge.txt";
+  char infilename[1024] = {0};
   BIO * infile = BIO_new_file(infilename, "r");
 
-  char h_buff[1024] = {0};
   
-	BIO* hash = BIO_new(BIO_s_mem());
-	BIO_write(hash, infilename, 1024);
-	hash = BIO_new(BIO_f_md());
-	BIO_set_md(hash, EVP_sha1());
-	BIO_push(hash, infile);
-	BIO_gets(hash, h_buff, 1024);
+  char h_buff[1024] = "31337";
+  
+  char send_buff[1024] = {0};
 
-  int mdlen=0;
-	string hash_string = h_buff;
+  //block memory for the input file
+	infile = BIO_new(BIO_s_mem());
+
+  //create and set hash type
+ 	BIO* hash = BIO_new(BIO_f_md());
+	BIO_set_md(hash, EVP_sha1());
+  
+  //chain the hash and the infile
+	BIO_push(infile, hash);
+  
+  //write to bio (hashing it) then pull out the chars
+	BIO_write(infile, h_buff, 20);
+	BIO_gets(hash, send_buff, 20); 
+
+  cout << "\n\n\n" << endl;
+  //for (int i = 0; i < 6; i++) {
+  //  printf("\n--%c--\n", send_buff[i]); 
+  //}
+  //write to the socket
+  SSL_write(ssl, send_buff, 20);
+  
+  int mdlen= 0; //BIO_gets(hash, h_buff, EVP_MAX_MD_SIZE);
+	string hash_string = send_buff;
 
 	printf("SUCCESS.\n");
 	printf("    (SHA1 hash: \"%s\" (%d bytes))\n", hash_string.c_str(), mdlen);
@@ -133,11 +150,13 @@ int main(int argc, char** argv)
 	//     file "rsaprivatekey.pem"
 	printf("4. Signing the key...");
 
-    //PEM_read_bio_RSAPrivateKey
-    //RSA_private_encrypt
+    BIO* b_rsap = BIO_new_file("rsaprivatekey.pem", "r");
+
+    RSA* rsa_enc = PEM_read_bio_RSAPrivateKey(b_rsap, NULL, NULL, NULL);
+    //RSA_private_encrypt( 1024, , , rsa_enc, RSA_PKCS1_PADDING); 
 
     int siglen=0;
-    char* signature="FIXME";
+    char* signature="";
 
     printf("DONE.\n");
     printf("    (Signed key length: %d bytes)\n", siglen);
@@ -183,7 +202,7 @@ int main(int argc, char** argv)
 	// 8. Close the connection
 	printf("8. Closing connection...");
 
-	//SSL_shutdown
+	SSL_shutdown(ssl);
   //BIO_reset
     printf("DONE.\n");
 

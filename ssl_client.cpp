@@ -96,7 +96,7 @@ int main(int argc, char** argv)
     char* randbuf = (char *)randomNumber.c_str();
 	  SSL_write(ssl, randbuf, 8);
     
-    printf("SUCCESS.\n");
+  printf("SUCCESS.\n");
 	printf("    (Challenge sent: \"%s\")\n", randomNumber.c_str());
 
     //-------------------------------------------------------------------------
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
 	printf("3a. Receiving signed key from server...");
 
     char* buff[1024]= {0};
-    int len=1024;
+    int len=20;
 	  SSL_read(ssl, buff, len);
 
 	printf("RECEIVED.\n");
@@ -147,7 +147,7 @@ int main(int argc, char** argv)
 	// 5. Receives and displays the contents of the file requested
 	printf("5.  Receiving response from server...");
 
-    //BIO_new_file
+  //BIO_new_file
     //SSL_read
 	//BIO_write
 	//BIO_free
@@ -158,7 +158,7 @@ int main(int argc, char** argv)
 	// 6. Close the connection
 	printf("6.  Closing the connection...");
 
-	//SSL_shutdown
+	SSL_shutdown(ssl);
 	
 	printf("DONE.\n");
 	
