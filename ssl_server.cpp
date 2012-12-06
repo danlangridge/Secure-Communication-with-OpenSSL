@@ -110,16 +110,16 @@ int main(int argc, char** argv)
 	// 3. Generate the SHA1 hash of the challenge
 	printf("3. Generating SHA1 hash...");
 
-  char infilename[1024] = {0};
-  BIO * infile = BIO_new_file(infilename, "r");
+  //char infilename[1024] = {0};
+  //BIO * infile = BIO_new_file(infilename, "r");
 
   
-  char h_buff[1024] = "31337";
+  char h_buff[128] = "31337";
   
-  char send_buff[1024] = {0};
+  char send_buff[128] = {0};
 
   //block memory for the input file
-	infile = BIO_new(BIO_s_mem());
+	BIO* infile = BIO_new(BIO_s_mem());
 
   //create and set hash type
  	BIO* hash = BIO_new(BIO_f_md());
@@ -129,21 +129,20 @@ int main(int argc, char** argv)
 	BIO_push(infile, hash);
   
   //write to bio (hashing it) then pull out the chars
-	BIO_write(infile, h_buff, 20);
-	BIO_gets(hash, send_buff, 20); 
+	BIO_write(infile, h_buff, 128);
+	BIO_gets(hash, send_buff, 128);
 
-  cout << "\n\n\n" << endl;
+  //cout << "\n\n\n" << endl;
   //for (int i = 0; i < 6; i++) {
   //  printf("\n--%c--\n", send_buff[i]); 
   //}
   //write to the socket
-  SSL_write(ssl, send_buff, 20);
   
-  int mdlen= 0; //BIO_gets(hash, h_buff, EVP_MAX_MD_SIZE);
+  int mdlen= 20; //BIO_gets(hash, h_buff, EVP_MAX_MD_SIZE);
 	string hash_string = send_buff;
 
 	printf("SUCCESS.\n");
-	printf("    (SHA1 hash: \"%s\" (%d bytes))\n", hash_string.c_str(), mdlen);
+	printf("    (SHA1 hash: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)send_buff, mdlen).c_str(), mdlen); //hash_string.c_str(), mdlen);
 
     //-------------------------------------------------------------------------
 	// 4. Sign the key using the RSA private key specified in the
@@ -152,11 +151,15 @@ int main(int argc, char** argv)
 
     BIO* b_rsap = BIO_new_file("rsaprivatekey.pem", "r");
 
-    RSA* rsa_enc = PEM_read_bio_RSAPrivateKey(b_rsap, NULL, NULL, NULL);
-    //RSA_private_encrypt( 1024, , , rsa_enc, RSA_PKCS1_PADDING); 
+    char enc_buff[128] = {0};
 
-    int siglen=0;
-    char* signature="";
+    RSA* rsa_enc = PEM_read_bio_RSAPrivateKey(b_rsap, NULL, NULL, NULL);
+    RSA_private_encrypt( 20, (unsigned char*)send_buff, (unsigned char*)enc_buff ,rsa_enc, RSA_PKCS1_PADDING); 
+
+    int siglen= 20;
+    char* signature= enc_buff;
+    
+    cout << endl;
 
     printf("DONE.\n");
     printf("    (Signed key length: %d bytes)\n", siglen);
@@ -169,6 +172,8 @@ int main(int argc, char** argv)
 	//BIO_flush
 	//SSL_write
 
+  SSL_write(ssl, enc_buff, 1024);
+    
     printf("DONE.\n");
     
     //-------------------------------------------------------------------------

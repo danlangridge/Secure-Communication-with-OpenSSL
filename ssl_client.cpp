@@ -6,6 +6,7 @@
 //----------------------------------------------------------------------------
 #include <string>
 #include <time.h>               // to seed random number generator
+#include <iostream>
 #include <sstream>          // stringstreams
 using namespace std;
 
@@ -104,7 +105,7 @@ int main(int argc, char** argv)
 	printf("3a. Receiving signed key from server...");
 
     char* buff[1024]= {0};
-    int len=20;
+    int len= 20;
 	  SSL_read(ssl, buff, len);
 
 	printf("RECEIVED.\n");
@@ -114,31 +115,54 @@ int main(int argc, char** argv)
 	// 3b. Authenticate the signed key
 	printf("3b. Authenticating key...");
 
-  //char* dec_buff[1024] = {0};
+  char dec_buff[1024] = {0};
 
-	//BIO* ua_key = BIO_new(BIO_s_mem());
-	//BIO_write(read_key, buff, 1024);
-	//ua_key = BIO_new_file( "key_authentication.txt" , "w")
-	//RSA* rsa_pub =  PEM_read_bio_RSA_PUBKEY(ua_key, NULL, NULL, NULL)
-	//RSA_public_decrypt(1024, buff, dec_buff, RSA_PKCS1_PADDING );
-	//BIO_free(ua_key);
+	BIO* ua_key = BIO_new(BIO_s_mem());
+	//BIO_write(ua_key, buff, 20);
+	BIO* pub_key = BIO_new_file( "rsapublickey.pem", "r");
+
+  //cout <<  "---| " << dec_buff[0] << " |---" << endl;
+  
+  //BIO_read(ua_key, dec_buff, 1);
+
+
+  BIO* store_key = BIO_new_file( "key_authentication.txt" , "w");
+	RSA* rsa_pub =  PEM_read_bio_RSA_PUBKEY(pub_key, NULL, NULL, NULL);
+
+
+  RSA_public_decrypt(20, (unsigned char*)buff, (unsigned char*)dec_buff, rsa_pub, RSA_NO_PADDING );
+
+
+  //---------Debug
+  cout << "\n\n";
+  unsigned long er =  ERR_get_error();
+  char er_buf[1024] = {0};
+  ERR_error_string(er, er_buf); 
+  printf( "ERROR : %s" , er_buf);
+  cout << "\n\n" << endl;
+  //---------
+
+  //BIO* test =   
+  //BIO_free(ua_key);
 	
 
 	string generated_key= ""; //str(buff);
 	string decrypted_key= ""; // str(dec_buff);
     
 	printf("AUTHENTICATED\n");
-	printf("    (Generated key: %s)\n", generated_key.c_str());
-	printf("    (Decrypted key: %s)\n", decrypted_key.c_str());
+	printf("    (Generated key: %s)\n", buff2hex((const unsigned char*)buff, len).c_str());
+	printf("    (Decrypted key: %s)\n", buff2hex((const unsigned char*)dec_buff, len).c_str());
 
     //-------------------------------------------------------------------------
 	// 4. Send the server a file request
 	printf("4.  Sending file request to server...");
 
 	PAUSE(2);
+  //BIO * filenme = BIO_new_file(argc[3], "r");
 	//BIO_flush();
-    //BIO_puts();
-	//SSL_write();
+  //BIO_puts();
+  char* fbuf = filename;
+	SSL_write(ssl, fbuf , (int)sizeof(fbuf));
 
     printf("SENT.\n");
 	printf("    (File requested: \"%s\")\n", filename);
@@ -148,7 +172,7 @@ int main(int argc, char** argv)
 	printf("5.  Receiving response from server...");
 
   //BIO_new_file
-    //SSL_read
+  //SSL_read
 	//BIO_write
 	//BIO_free
 
@@ -169,6 +193,5 @@ int main(int argc, char** argv)
 	// Freedom!
 	SSL_CTX_free(ctx);
 	SSL_free(ssl);
-	return EXIT_SUCCESS;
-	
+	return EXIT_SUCCESS;	
 }
