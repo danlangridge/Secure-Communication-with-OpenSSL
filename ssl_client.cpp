@@ -104,9 +104,9 @@ int main(int argc, char** argv)
 	// 3a. Receive the signed key from the server
 	printf("3a. Receiving signed key from server...");
 
-    char* buff[1024]= {0};
-    int len= 20;
-	  SSL_read(ssl, buff, len);
+    char* buff[128]= {0};
+    int len= 128;
+	  int err = SSL_read(ssl, buff, len);
 
 	printf("RECEIVED.\n");
 	printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)buff, len).c_str(), len);
@@ -115,7 +115,7 @@ int main(int argc, char** argv)
 	// 3b. Authenticate the signed key
 	printf("3b. Authenticating key...");
 
-  char dec_buff[1024] = {0};
+  char dec_buff[20] = {0};
 
 	BIO* ua_key = BIO_new(BIO_s_mem());
 	//BIO_write(ua_key, buff, 20);
@@ -130,11 +130,13 @@ int main(int argc, char** argv)
 	RSA* rsa_pub =  PEM_read_bio_RSA_PUBKEY(pub_key, NULL, NULL, NULL);
 
 
-  RSA_public_decrypt(20, (unsigned char*)buff, (unsigned char*)dec_buff, rsa_pub, RSA_NO_PADDING );
+  RSA_public_decrypt(128, (unsigned char*)buff, (unsigned char*)dec_buff, rsa_pub, RSA_PKCS1_PADDING );
+
 
 
   //---------Debug
-  cout << "\n\n";
+  SSL_get_error(ssl,err);
+  cout << "\n\n" << err << "\n\n";
   unsigned long er =  ERR_get_error();
   char er_buf[1024] = {0};
   ERR_error_string(er, er_buf); 
@@ -162,7 +164,7 @@ int main(int argc, char** argv)
 	//BIO_flush();
   //BIO_puts();
   char* fbuf = filename;
-	SSL_write(ssl, fbuf , (int)sizeof(fbuf));
+	SSL_write(ssl, fbuf , 20);
 
     printf("SENT.\n");
 	printf("    (File requested: \"%s\")\n", filename);
@@ -171,10 +173,22 @@ int main(int argc, char** argv)
 	// 5. Receives and displays the contents of the file requested
 	printf("5.  Receiving response from server...");
 
-  //BIO_new_file
-  //SSL_read
-	//BIO_write
-	//BIO_free
+  
+  char read_buff[1024] = {0};
+  char out_buff[1024] = {0};
+  BIO* file_req = BIO_new_file("dump.txt","w");
+  int o = 5;
+  while(o) {
+    SSL_read(ssl, read_buff, 1024);
+	 
+    RSA_public_decrypt(128, (unsigned char*)read_buff, (unsigned char*)out_buff, rsa_pub, RSA_PKCS1_PADDING);
+
+    BIO_write(file_req, read_buff, 1024);
+	  BIO_flush(file_req);
+    o--;
+  }
+  
+  //BIO_free
 
 	printf("FILE RECEIVED.\n");
 

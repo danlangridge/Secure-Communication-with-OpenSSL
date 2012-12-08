@@ -4,6 +4,7 @@
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 #include <openssl/crypto.h>
+#include <openssl/err.h>
 
 
 
@@ -12,7 +13,7 @@ using namespace std;
 int main(int argc, char *argv[])
 {
   SSL_library_init(); 
-  //ERR_load_crypto_strings();
+  ERR_load_crypto_strings();
   SSL_load_error_strings();
 	
   //This section uses BIOs to write a copy of infile.txt to outfile.txt
@@ -65,7 +66,16 @@ int main(int argc, char *argv[])
 	//Chain on the output
 	//BIO_push(hash, boutfile);
 
-	int actualRead, actualWritten;
+  //---------Debug
+  cout << "\n\n";
+  unsigned long er =  ERR_get_error();
+  char er_buf[1024] = {0};
+  ERR_error_string(er, er_buf); 
+  printf( "ERROR : %s" , er_buf);
+  cout << "\n\n" << endl;
+  //---------
+	
+  int actualRead, actualWritten;
 
 	while((actualRead = BIO_read(hash, decbuffer, 1024)) >= 1)
 	{

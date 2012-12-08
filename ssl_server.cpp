@@ -130,8 +130,8 @@ int main(int argc, char** argv)
   
   //write to bio (hashing it) then pull out the chars
 	BIO_write(infile, h_buff, 128);
-	BIO_gets(hash, send_buff, 128);
-
+	//BIO_gets(hash, send_buff, 128);
+  BIO_read(infile, send_buff, 128);
   //cout << "\n\n\n" << endl;
   //for (int i = 0; i < 6; i++) {
   //  printf("\n--%c--\n", send_buff[i]); 
@@ -154,16 +154,16 @@ int main(int argc, char** argv)
     char enc_buff[128] = {0};
 
     RSA* rsa_enc = PEM_read_bio_RSAPrivateKey(b_rsap, NULL, NULL, NULL);
-    RSA_private_encrypt( 20, (unsigned char*)send_buff, (unsigned char*)enc_buff ,rsa_enc, RSA_PKCS1_PADDING); 
+    int rsa_size = RSA_private_encrypt(20, (unsigned char*)send_buff, (unsigned char*)enc_buff ,rsa_enc, RSA_PKCS1_PADDING); 
 
     int siglen= 20;
     char* signature= enc_buff;
     
-    cout << endl;
+    cout << rsa_size <<  endl;
 
     printf("DONE.\n");
     printf("    (Signed key length: %d bytes)\n", siglen);
-    printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)signature, siglen).c_str(), siglen);
+    printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)enc_buff, siglen).c_str(), siglen);
 
     //-------------------------------------------------------------------------
 	// 5. Send the signature to the client for authentication
@@ -172,7 +172,7 @@ int main(int argc, char** argv)
 	//BIO_flush
 	//SSL_write
 
-  SSL_write(ssl, enc_buff, 1024);
+  SSL_write(ssl, enc_buff, 128);
     
     printf("DONE.\n");
     
@@ -180,10 +180,10 @@ int main(int argc, char** argv)
 	// 6. Receive a filename request from the client
 	printf("6. Receiving file request from client...");
 
+    char file[BUFFER_SIZE] = {0};
+    SSL_read(ssl, file, BUFFER_SIZE);
+    //memset(file,0,sizeof(file));
 
-    //SSL_read
-    char file[BUFFER_SIZE];
-    memset(file,0,sizeof(file));
     printf("RECEIVED.\n");
     printf("    (File requested: \"%s\"\n", file);
 
@@ -192,17 +192,25 @@ int main(int argc, char** argv)
 	printf("7. Attempting to send requested file to client...");
 
 	PAUSE(2);
-	//BIO_flush
-	//BIO_new_file
-	//BIO_puts(server, "fnf");
-  //BIO_read(bfile, buffer, BUFFER_SIZE)) > 0)
-	//SSL_write(ssl, buffer, bytesRead);
-
-    int bytesSent=0;
+	BIO* sendfile = BIO_new_file(file,"r");
+	char filebuff[1024] = {0};
+  char encout_buff[1024] = {0};
+  //BIO_puts(server, "fnf");
+  int bytesSent=0;
+  while(1) {
+  int bread = BIO_read(sendfile, filebuff, BUFFER_SIZE);
+  BIO_flush(sendfile);
+    if (bread) {
+      //RSA_private_encrypt(20, (unsigned char*)filebuff, (unsigned char*)encout_buff ,rsa_enc, RSA_PKCS1_PADDING);
+      SSL_write(ssl, filebuff, bread);
+	  }
+    else break;
+    bytesSent += bread;
+  }
     
     printf("SENT.\n");
     printf("    (Bytes sent: %d)\n", bytesSent);
-
+  
     //-------------------------------------------------------------------------
 	// 8. Close the connection
 	printf("8. Closing connection...");
