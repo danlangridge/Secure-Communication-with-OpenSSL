@@ -98,18 +98,18 @@ int main(int argc, char** argv)
     //-------------------------------------------------------------------------
 	// 2. Receive a random number (the challenge) from the client
 	printf("2. Waiting for client to connect and send challenge...");
-    char enc_rbuf[128] = {0};
-    char rbuf[128] = {0};
+    unsigned char enc_rbuf[128] = {0};
+    unsigned char rbuf[128] = {0};
     SSL_read(ssl,enc_rbuf, 128);
     
     BIO* b_rsap = BIO_new_file("rsaprivatekey.pem", "r");
 
     RSA* rsa_enc = PEM_read_bio_RSAPrivateKey(b_rsap, NULL, NULL, NULL);
-    RSA_private_encrypt(20, (unsigned char*)enc_rbuf, (unsigned char*)rbuf ,rsa_enc, RSA_PKCS1_PADDING); 
+    RSA_private_decrypt(128, (unsigned char*)enc_rbuf, (unsigned char*)rbuf ,rsa_enc, RSA_PKCS1_PADDING); 
 
     
 	printf("DONE.\n");
-	printf("    (Challenge: \"%s\")\n", buff2hex((const unsigned char*)rbuf, 20).c_str());
+	printf("    (Challenge (unHashed | Decrypted): \"%s\")\n", buff2hex((const unsigned char*)rbuf, 20).c_str());
 
     //-------------------------------------------------------------------------
 	// 3. Generate the SHA1 hash of the challenge
@@ -163,7 +163,7 @@ int main(int argc, char** argv)
 
     printf("DONE.\n");
     printf("    (Signed key length: %d bytes)\n", siglen);
-    printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)enc_buff, 20).c_str(), siglen);
+    printf("    (Signature (Hashed, Encrypted): \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)enc_buff, 20).c_str(), siglen);
 
     //-------------------------------------------------------------------------
 	// 5. Send the signature to the client for authentication

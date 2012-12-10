@@ -104,7 +104,9 @@ int main(int argc, char** argv)
     BIO* store_key = BIO_new_file( "key_authentication.txt" , "w");
 	  RSA* rsa_pub =  PEM_read_bio_RSA_PUBKEY(pub_key, NULL, NULL, NULL);  
     
-    RSA_public_encrypt(20, rbuf, enc_rbuf, rsa_pub, RSA_PKCS1_PADDING);
+   int rsa_test = RSA_public_encrypt(20, rbuf, enc_rbuf, rsa_pub, RSA_PKCS1_PADDING);
+
+    cout << rsa_test << endl;
 
     //string randomNumber="31337";
     //char* randbuf = (char *)randomNumber.c_str();
@@ -112,7 +114,7 @@ int main(int argc, char** argv)
   
   
   printf("SUCCESS.\n");
-	printf("    (Challenge sent: \"%s\")\n", buff2hex((const unsigned char *)rbuf, 20).c_str());
+	printf("    (Challenge sent (Unhashed | Unencrypted): \"%s\")\n", buff2hex((const unsigned char *)rbuf, 20).c_str());
 
     //-------------------------------------------------------------------------
 	// 3a. Receive the signed key from the server
@@ -123,7 +125,7 @@ int main(int argc, char** argv)
 	  int err = SSL_read(ssl, buff, len);
 
 	printf("RECEIVED.\n");
-	printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)buff, 20).c_str(), len);
+	printf("    (Signature (Hashed | Encrypted): \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)buff, 20).c_str(), len);
 
     //-------------------------------------------------------------------------
 	// 3b. Authenticate the signed key
@@ -134,6 +136,23 @@ int main(int argc, char** argv)
 	//BIO* ua_key = BIO_new(BIO_s_mem());
 
   RSA_public_decrypt(128, (unsigned char*)buff, (unsigned char*)dec_buff, rsa_pub, RSA_PKCS1_PADDING );
+  
+  BIO* infile = BIO_new(BIO_s_mem());
+
+
+  char ver_buf[128] = {0};
+  //create and set hash type
+ 	BIO* hash = BIO_new(BIO_f_md());
+	BIO_set_md(hash, EVP_sha1());
+  
+  //chain the hash and the infile
+	BIO_push(infile, hash);
+  
+  //write to bio (hashing it) then pull out the chars
+	BIO_write(infile,rbuf, 128);
+	//BIO_gets(hash, send_buff, 128);
+  BIO_read(infile, ver_buf, 128);
+
 
 
  /* 
@@ -155,8 +174,8 @@ int main(int argc, char** argv)
 	string decrypted_key= ""; // str(dec_buff);
     
 	printf("AUTHENTICATED\n");
-	printf("    (Generated key: %s)\n", buff2hex((const unsigned char*)buff, 20).c_str());
-	printf("    (Decrypted key: %s)\n", buff2hex((const unsigned char*)dec_buff, 20).c_str());
+	printf("    (Hashed Challenge: %s)\n", buff2hex((const unsigned char*)ver_buf, 20).c_str());
+	printf("    (Decrypted Hashed Challenge: %s)\n", buff2hex((const unsigned char*)dec_buff, 20).c_str());
 
     //-------------------------------------------------------------------------
 	// 4. Send the server a file request
