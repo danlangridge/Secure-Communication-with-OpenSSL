@@ -16,6 +16,8 @@ using namespace std;
 #include <openssl/pem.h>	// For reading .pem files for RSA keys
 #include <openssl/err.h>	// ERR_get_error()
 #include <openssl/dh.h>		// Diffie-Helman algorithms & libraries
+#include <openssl/rand.h>
+
 
 #include "utils.h"
 
@@ -93,12 +95,16 @@ int main(int argc, char** argv)
 	// 2. Send the server a random number
 	printf("2.  Sending challenge to the server...");
     
+   
+    unsigned char rbuff[128] = {0};
+    RAND_bytes(rbuff, 128);
+
     string randomNumber="31337";
     char* randbuf = (char *)randomNumber.c_str();
-	  SSL_write(ssl, randbuf, 8);
+	  SSL_write(ssl, rbuff, 128);
     
   printf("SUCCESS.\n");
-	printf("    (Challenge sent: \"%s\")\n", randomNumber.c_str());
+	printf("    (Challenge sent: \"%s\")\n", buff2hex((const unsigned char *)rbuff, 128).c_str());
 
     //-------------------------------------------------------------------------
 	// 3a. Receive the signed key from the server
@@ -133,7 +139,7 @@ int main(int argc, char** argv)
   RSA_public_decrypt(128, (unsigned char*)buff, (unsigned char*)dec_buff, rsa_pub, RSA_PKCS1_PADDING );
 
 
-
+  /*
   //---------Debug
   SSL_get_error(ssl,err);
   cout << "\n\n" << err << "\n\n";
@@ -143,7 +149,7 @@ int main(int argc, char** argv)
   printf( "ERROR : %s" , er_buf);
   cout << "\n\n" << endl;
   //---------
-
+  */
   //BIO* test =   
   //BIO_free(ua_key);
 	
