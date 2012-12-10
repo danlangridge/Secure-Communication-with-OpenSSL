@@ -96,15 +96,23 @@ int main(int argc, char** argv)
 	printf("2.  Sending challenge to the server...");
     
    
-    unsigned char rbuff[128] = {0};
-    RAND_bytes(rbuff, 128);
+    unsigned char rbuf[128] = {0};
+    unsigned char enc_rbuf[128] = {0};
+    RAND_bytes(rbuf, 128);
 
-    string randomNumber="31337";
-    char* randbuf = (char *)randomNumber.c_str();
-	  SSL_write(ssl, rbuff, 128);
+  	BIO* pub_key = BIO_new_file( "rsapublickey.pem", "r");
+    BIO* store_key = BIO_new_file( "key_authentication.txt" , "w");
+	  RSA* rsa_pub =  PEM_read_bio_RSA_PUBKEY(pub_key, NULL, NULL, NULL);  
     
+    RSA_public_encrypt(20, rbuf, enc_rbuf, rsa_pub, RSA_PKCS1_PADDING);
+
+    //string randomNumber="31337";
+    //char* randbuf = (char *)randomNumber.c_str();
+	  SSL_write(ssl, enc_rbuf, 128);
+  
+  
   printf("SUCCESS.\n");
-	printf("    (Challenge sent: \"%s\")\n", buff2hex((const unsigned char *)rbuff, 128).c_str());
+	printf("    (Challenge sent: \"%s\")\n", buff2hex((const unsigned char *)rbuf, 20).c_str());
 
     //-------------------------------------------------------------------------
 	// 3a. Receive the signed key from the server
@@ -115,7 +123,7 @@ int main(int argc, char** argv)
 	  int err = SSL_read(ssl, buff, len);
 
 	printf("RECEIVED.\n");
-	printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)buff, len).c_str(), len);
+	printf("    (Signature: \"%s\" (%d bytes))\n", buff2hex((const unsigned char*)buff, 20).c_str(), len);
 
     //-------------------------------------------------------------------------
 	// 3b. Authenticate the signed key
@@ -123,23 +131,12 @@ int main(int argc, char** argv)
 
   char dec_buff[20] = {0};
 
-	BIO* ua_key = BIO_new(BIO_s_mem());
-	//BIO_write(ua_key, buff, 20);
-	BIO* pub_key = BIO_new_file( "rsapublickey.pem", "r");
-
-  //cout <<  "---| " << dec_buff[0] << " |---" << endl;
-  
-  //BIO_read(ua_key, dec_buff, 1);
-
-
-  BIO* store_key = BIO_new_file( "key_authentication.txt" , "w");
-	RSA* rsa_pub =  PEM_read_bio_RSA_PUBKEY(pub_key, NULL, NULL, NULL);
-
+	//BIO* ua_key = BIO_new(BIO_s_mem());
 
   RSA_public_decrypt(128, (unsigned char*)buff, (unsigned char*)dec_buff, rsa_pub, RSA_PKCS1_PADDING );
 
 
-  /*
+ /* 
   //---------Debug
   SSL_get_error(ssl,err);
   cout << "\n\n" << err << "\n\n";
@@ -158,8 +155,8 @@ int main(int argc, char** argv)
 	string decrypted_key= ""; // str(dec_buff);
     
 	printf("AUTHENTICATED\n");
-	printf("    (Generated key: %s)\n", buff2hex((const unsigned char*)buff, len).c_str());
-	printf("    (Decrypted key: %s)\n", buff2hex((const unsigned char*)dec_buff, len).c_str());
+	printf("    (Generated key: %s)\n", buff2hex((const unsigned char*)buff, 20).c_str());
+	printf("    (Decrypted key: %s)\n", buff2hex((const unsigned char*)dec_buff, 20).c_str());
 
     //-------------------------------------------------------------------------
 	// 4. Send the server a file request
